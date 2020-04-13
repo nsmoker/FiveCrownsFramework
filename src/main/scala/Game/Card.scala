@@ -1,6 +1,6 @@
-package Game
+package game
 
-import Game.Suit.Suit
+import game.Suit.Suit
 
 case class Card(value:Int, suit:Suit)
 
