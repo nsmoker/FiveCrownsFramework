@@ -14,6 +14,6 @@ object Card
         Card(i, s)
       }}
     val jokers: List[Card] = List(Card(50, null),Card(50, null),Card(50, null),Card(50, null),Card(50, null),Card(50, null))
-    (init ++ jokers)
+    (init ++ init ++ jokers)
   }
 }

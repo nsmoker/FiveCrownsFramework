@@ -5,8 +5,7 @@ import game.Suit.Suit
 import scala.collection.mutable.{ArrayBuffer, Stack}
 import scala.util.Random
 
-class Game (val numPlayers: Int)
-{
+class Game(val numPlayers: Int) {
   //num players (immutable)
   //draw deck (mutable, stack, starts at 116, deal 3 to each player)
   //discard deck (mutable, stack, starts at 0, push discards on as they occur)
@@ -14,84 +13,114 @@ class Game (val numPlayers: Int)
 
   private var drawDeck: Stack[Card] = Stack.empty[Card].pushAll(Random.shuffle(Card.allCards))
   private var discardDeck: Stack[Card] = Stack.empty
-  private var players: List[Player] = List.fill(numPlayers) (new Player("Joe"))
-  private var hasMatch: Boolean = false
+  private var players: List[Player] = List.fill(numPlayers)(new Player("Joe"))
+  private var _hasMatch: Boolean = false
   private var firstMatch: Player = _
 
-  def test(): Unit = {
-    players = List(new Player("jim"))
-    players.head.addToHand(Card(10, Suit.Clubs))
-    players.head.addToHand(Card(10, Suit.Clubs))
-    players.head.addToHand(Card(10, Suit.Clubs))
+  def hasMatch: Boolean = {
+    _hasMatch
   }
 
-  def deal(numCards: Int): Unit =
-    {
-      for(i <- 0 until numCards)
-      {
-        players.foreach(p => p.addToHand(drawDeck.pop))
-      }
+  def test(roundNum: Int): Unit = {
+    players = List(new Player("jim"), new Player("bob"))
+    for (i <- 1 to roundNum) {
+      players.head.addToHand(Card(10, Suit.Clubs))
     }
+    players.tail.head.addToHand(Card(4, Suit.Spades))
+    players.tail.head.addToHand(Card(4, Suit.Stars))
+    players.tail.head.addToHand(Card(10, Suit.Stars))
+  }
 
-  def draw(drawFrom: String, p: Player): Unit = drawFrom match {
-    case "discard" => p.addToHand(discardDeck.pop())
-    case "deck" => p.addToHand(drawDeck.pop)
-    case _ => println("Error: How did this even happen?")
+  def deal(numCards: Int): Unit = {
+    for (i <- 0 until numCards) {
+      players.foreach(p => draw("deck", p))
+    }
+  }
+
+  def draw(drawFrom: String, p: Player): Unit = {
+    if (drawDeck.isEmpty) {
+      drawDeck = discardDeck.clone()
+      discardDeck.clear()
+    }
+    drawFrom match {
+      case "discard" => p.addToHand(discardDeck.pop())
+      case "deck" => p.addToHand(drawDeck.pop)
+      case _ => println("Error: How did this even happen?")
+    }
   }
 
   def discard(p: Player, i: Int): Unit = discardDeck.push(p.removeFromHand(i))
 
   def playGame(): Unit = {
-    for(roundNum <- 3 to 13) {
+    for (roundNum <- 3 to 13) {
       playRound(roundNum)
     }
+    val winner = players.minBy(_.score)
+    println(s"Congratuations ${winner.name} you have won with a score of ${winner.score}!")
   }
 
-  def playRound(round: Int): Unit =
-    {
-      players.foreach(_.emptyHand)
-      deal(round)
-      while(!hasMatch)
-      {
-        players.foreach(_.takeTurn(this))
-      }
-      val remaining = players.filterNot(_ != firstMatch)
-      remaining.foreach(_.takeTurn(this))
-      remaining.foreach(_.tallyScore(round))
-      hasMatch = false
-
+  def playRound(round: Int): Unit = {
+    players.foreach(_.emptyHand)
+    deal(round)
+    test(round)
+    while (!_hasMatch) {
+      players.foreach(p => if (!_hasMatch) p.takeTurn(this, round))
     }
+    val remaining = players.filter(_ != firstMatch)
+    remaining.foreach(_.takeTurn(this, round))
+    remaining.foreach(_.tallyScore(round))
+    _hasMatch = false
+  }
 
-  def checkMatch(p: Player, indexes: List[Int]): Boolean =
-    {
-      val cards = indexes.map(p.hand(_)).sortBy(_.value)
+  def checkMatch(p: Player, indexes: List[Int], roundNum: Int): Boolean = {
+    println(_hasMatch)
+    if (indexes.length < 3) {
+      println("A match requires 3 or more cards.")
+      false
+    }
+    else {
+      val cards = indexes.map(p.hand(_)).filter(c => c.value != 50 && c.value != roundNum).sortBy(_.value)
+      println(cards.toList)
       //same suit AND run
       //same value suit doesnt matter
       val checkValue: Int = cards.head.value
-      if(cards.forall(c => {c.value == checkValue})) {
+      if (cards.forall(c => {
+        c.value == checkValue
+      })) {
         p.addToSubHand(indexes)
-        if(!hasMatch) {hasMatch = true}
+        if (!_hasMatch) {
+          firstMatch = p
+          _hasMatch = true
+        } else {
+          println("reached else")
+          firstMatch = p
+          indexes.foreach(p.removeFromHand)
+        }
         true
       }
-      else
-        {
-          val checkSuit: Suit = cards.head.suit
-          if(cards.forall(c => {c.suit == checkSuit}))
-            {
-              for(c <- 0 until cards.length-1)
-                {
-                  if(cards(c).value - cards(c+1).value != 1) false
-                }
-              p.addToSubHand(indexes)
-              if(!hasMatch) hasMatch = true
-              true
-            }
-          else false
+      else {
+        val checkSuit: Suit = cards.head.suit
+        if (cards.forall(c => {
+          c.suit == checkSuit
+        })) {
+          for (c <- 0 until cards.length - 1) {
+            if (cards(c).value - cards(c + 1).value != 1) false
+          }
+          p.addToSubHand(indexes)
+          if (!_hasMatch) {
+            firstMatch = p
+            _hasMatch = true
+          }
+          true
         }
+        else false
+      }
     }
-  def checkHand(p: Player, matches: List[List[Int]]): Boolean = {
-    if(matches.forall(checkMatch(p,_))) {
-      hasMatch = true
+  }
+
+  def checkHand(p: Player, matches: List[List[Int]], roundNum: Int): Boolean = {
+    if (matches.forall(checkMatch(p, _, roundNum))) {
+      _hasMatch = true
       firstMatch = p
       true
     } else false
@@ -110,5 +139,5 @@ object Game {
     List((Suit.Clubs, "Clubs"), (Suit.Diamonds, "Diamonds"), (Suit.Hearts, "Hearts"), (Suit.Spades, "Spades"), (Suit.Stars, "Stars"), (null, "")).toMap
   }
 
-  def cardNameMap(card: Card): String = cardValToName(card.value) + (if(card.value == 50) "" else " of ") + cardSuitToName(card.suit)
+  def cardNameMap(card: Card): String = cardValToName(card.value) + (if (card.value == 50) "" else " of ") + cardSuitToName(card.suit)
 }
