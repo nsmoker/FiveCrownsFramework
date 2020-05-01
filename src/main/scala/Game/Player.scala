@@ -2,7 +2,6 @@ package game
 
 import scala.collection.mutable.ArrayBuffer
 import scala.io.StdIn.readLine
-import scala.util.control.Breaks._
 
 class Player(val name: String) {
   private var _score = 0
@@ -99,7 +98,8 @@ class Player(val name: String) {
       val input = readLine("Type 'draw from deck' to draw from the deck\n" +
         "Type 'draw from discard' to draw from the discard pile\n" +
         "type 'discard' followed by the number of the card to discard, separated by a space (this will end your turn)\n" +
-        "Type 'match' to check if your entire hand is a match \n")
+        "Type 'match' to check if your entire hand is a match \n" + (if(!game.discardIsEmpty)
+        s"The top card of the discard is a ${Game.cardNameMap(game.peekDiscard)}" else ""))
       input.trim match {
         case d if d.split(" ").head == "draw" =>
           val outcome = handleDraw(game, d.split(" ").last, hasDrawn)

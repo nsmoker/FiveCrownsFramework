@@ -21,6 +21,10 @@ class Game(val numPlayers: Int) {
     _hasMatch
   }
 
+  def discardIsEmpty: Boolean = discardDeck.isEmpty
+
+  def peekDiscard: Card = discardDeck.top
+
   def test(roundNum: Int): Unit = {
     players = List(new Player("jim"), new Player("bob"))
     for (i <- 1 to roundNum) {
@@ -49,6 +53,10 @@ class Game(val numPlayers: Int) {
     }
   }
 
+//  def generateSim(roundNum: Int): SimRound = {
+//    new SimRound(roundNum)
+//  }
+
   def discard(p: Player, i: Int): Unit = discardDeck.push(p.removeFromHand(i))
 
   def playGame(): Unit = {
@@ -62,7 +70,6 @@ class Game(val numPlayers: Int) {
   def playRound(round: Int): Unit = {
     players.foreach(_.emptyHand)
     deal(round)
-    test(round)
     while (!_hasMatch) {
       players.foreach(p => if (!_hasMatch) p.takeTurn(this, round))
     }
