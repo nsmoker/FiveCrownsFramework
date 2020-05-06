@@ -13,7 +13,7 @@ class Game(val numPlayers: Int) {
 
   private var drawDeck: Stack[Card] = Stack.empty[Card].pushAll(Random.shuffle(Card.allCards))
   private var discardDeck: Stack[Card] = Stack.empty
-  private var players: List[Player] = List.fill(numPlayers)(new Player("Joe"))
+  var players: List[Player] = List(new Player("joe", true), new Player("jay", false))
   private var _hasMatch: Boolean = false
   private var firstMatch: Player = _
 
@@ -27,15 +27,15 @@ class Game(val numPlayers: Int) {
 
   def peekDiscard: Card = discardDeck.top
 
-  def test(roundNum: Int): Unit = {
-    players = List(new Player("jim"), new Player("bob"))
-    for (i <- 1 to roundNum) {
-      players.head.addToHand(Card(10, Suit.Clubs))
-    }
-    players.tail.head.addToHand(Card(4, Suit.Spades))
-    players.tail.head.addToHand(Card(4, Suit.Stars))
-    players.tail.head.addToHand(Card(10, Suit.Stars))
-  }
+//  def test(roundNum: Int): Unit = {
+//    players = List(new Player("jim"), new Player("bob"))
+//    for (i <- 1 to roundNum) {
+//      players.head.addToHand(Card(10, Suit.Clubs))
+//    }
+//    players.tail.head.addToHand(Card(4, Suit.Spades))
+//    players.tail.head.addToHand(Card(4, Suit.Stars))
+//    players.tail.head.addToHand(Card(10, Suit.Stars))
+//  }
 
   def deal(numCards: Int): Unit = {
     for (i <- 0 until numCards) {
@@ -79,6 +79,7 @@ class Game(val numPlayers: Int) {
     remaining.foreach(_.takeTurn(this, round))
     remaining.foreach(_.tallyScore(round))
     _hasMatch = false
+    players.foreach(x => println(s"${x.name}: ${x.score}"))
   }
 
   def simIsMatch(hand: Vector[Card], roundNum: Int): Boolean = {
@@ -94,7 +95,7 @@ class Game(val numPlayers: Int) {
         })) {
           var isStraight = true
           for (c <- 0 until sorted.length - 1) {
-            if (sorted(c).value - sorted(c + 1).value != 1) isStraight = false
+            if (sorted(c).value - sorted(c + 1).value != -1) isStraight = false
           }
           isStraight
         }

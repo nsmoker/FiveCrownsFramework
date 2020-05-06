@@ -1,12 +1,15 @@
 package game
 
+import agent.Agent
+
 import scala.collection.mutable.ArrayBuffer
 import scala.io.StdIn.readLine
 
-class Player(val name: String) {
+class Player(val name: String, val isAI: Boolean) {
   private var _score = 0
   private var _hand: ArrayBuffer[Card] = ArrayBuffer.empty
   private var subHand: ArrayBuffer[Card] = ArrayBuffer.empty
+  var agent: Agent = null
 
   def score: Int = {
     _score
@@ -89,7 +92,20 @@ class Player(val name: String) {
     }
   }
 
-  def takeTurn(game: Game, roundNum: Int): Unit = {
+  def takeTurn(game: Game, roundNum: Int): Unit = if(isAI) takeTurnAI(game, roundNum) else takeTurnHuman(game, roundNum)
+
+  def takeTurnAI(game: Game, roundNum: Int): Unit = {
+    val drawRes = agent.getDraw(5000)
+    if(drawRes) {
+      handleDraw(game, "deck", false)
+    } else {
+      handleDraw(game, "discard", false)
+    }
+    val discardRes = agent.getDiscard(5000)
+    handleDiscard(game, discardRes, true, false)
+  }
+
+  def takeTurnHuman(game: Game, roundNum: Int): Unit = {
     var endTurn = false
     var hasDrawn = false
     var hasDiscarded = false
