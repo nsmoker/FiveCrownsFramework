@@ -13,7 +13,7 @@ class Game(val numPlayers: Int) {
 
   private var drawDeck: Stack[Card] = Stack.empty[Card].pushAll(Random.shuffle(Card.allCards))
   private var discardDeck: Stack[Card] = Stack.empty
-  private var players: List[Player] = List.fill(numPlayers)(new Player("Joe"))
+  var players: List[Player] = List(new Player("joe", true), new Player("jay", false))
   private var _hasMatch: Boolean = false
   private var firstMatch: Player = _
 
@@ -21,15 +21,21 @@ class Game(val numPlayers: Int) {
     _hasMatch
   }
 
-  def test(roundNum: Int): Unit = {
-    players = List(new Player("jim"), new Player("bob"))
-    for (i <- 1 to roundNum) {
-      players.head.addToHand(Card(10, Suit.Clubs))
-    }
-    players.tail.head.addToHand(Card(4, Suit.Spades))
-    players.tail.head.addToHand(Card(4, Suit.Stars))
-    players.tail.head.addToHand(Card(10, Suit.Stars))
-  }
+  def discardIsEmpty: Boolean = discardDeck.isEmpty
+
+  def getDiscard: Vector[Card] = discardDeck.toVector
+
+  def peekDiscard: Card = discardDeck.top
+
+//  def test(roundNum: Int): Unit = {
+//    players = List(new Player("jim"), new Player("bob"))
+//    for (i <- 1 to roundNum) {
+//      players.head.addToHand(Card(10, Suit.Clubs))
+//    }
+//    players.tail.head.addToHand(Card(4, Suit.Spades))
+//    players.tail.head.addToHand(Card(4, Suit.Stars))
+//    players.tail.head.addToHand(Card(10, Suit.Stars))
+//  }
 
   def deal(numCards: Int): Unit = {
     for (i <- 0 until numCards) {
@@ -49,6 +55,10 @@ class Game(val numPlayers: Int) {
     }
   }
 
+//  def generateSim(roundNum: Int): SimRound = {
+//    new SimRound(roundNum)
+//  }
+
   def discard(p: Player, i: Int): Unit = discardDeck.push(p.removeFromHand(i))
 
   def playGame(): Unit = {
@@ -62,7 +72,6 @@ class Game(val numPlayers: Int) {
   def playRound(round: Int): Unit = {
     players.foreach(_.emptyHand)
     deal(round)
-    test(round)
     while (!_hasMatch) {
       players.foreach(p => if (!_hasMatch) p.takeTurn(this, round))
     }
@@ -70,7 +79,32 @@ class Game(val numPlayers: Int) {
     remaining.foreach(_.takeTurn(this, round))
     remaining.foreach(_.tallyScore(round))
     _hasMatch = false
+    players.foreach(x => println(s"${x.name}: ${x.score}"))
   }
+
+  def simIsMatch(hand: Vector[Card], roundNum: Int): Boolean = {
+    if (hand.length < 3) {
+      false
+    } else {
+      val sorted = hand.sortBy(_.value)
+      val checkValue = sorted.head.value
+      if(sorted.forall(_.value == checkValue)) true else {
+        val checkSuit: Suit = sorted.head.suit
+        if (sorted.forall(c => {
+          c.suit == checkSuit
+        })) {
+          var isStraight = true
+          for (c <- 0 until sorted.length - 1) {
+            if (sorted(c).value - sorted(c + 1).value != -1) isStraight = false
+          }
+          isStraight
+        }
+        else false
+      }
+    }
+  }
+
+  def possibleCards(hand: Vector[Card], discard: Vector[Card]): Vector[Card] = Card.allCards.diff(hand ++ discard).toVector
 
   def checkMatch(p: Player, indexes: List[Int], roundNum: Int): Boolean = {
     println(_hasMatch)
@@ -81,8 +115,6 @@ class Game(val numPlayers: Int) {
     else {
       val cards = indexes.map(p.hand(_)).filter(c => c.value != 50 && c.value != roundNum).sortBy(_.value)
       println(cards.toList)
-      //same suit AND run
-      //same value suit doesnt matter
       val checkValue: Int = cards.head.value
       if (cards.forall(c => {
         c.value == checkValue
