@@ -6,10 +6,16 @@ import game.Card
 import scala.collection.mutable.ArrayBuffer
 
 trait Node {
-  var parent: Node
-  var children: ArrayBuffer[Node]
+  val hand: Vector[Card]
+  val discard: Vector[Card]
+  val parent: Node
+  val children: ArrayBuffer[Node]
   var score: Double
-  var actionType: NodeAction
+  var visits: Int
+  val hasMatched: Boolean
+  val actionType: NodeAction
+  val turn: Int
 
-  def genCard: Card
+  def isLeaf: Boolean = children.isEmpty
+  def hasParent: Boolean = parent != null
 }

@@ -23,6 +23,8 @@ class Game(val numPlayers: Int) {
 
   def discardIsEmpty: Boolean = discardDeck.isEmpty
 
+  def getDiscard: Vector[Card] = discardDeck.toVector
+
   def peekDiscard: Card = discardDeck.top
 
   def test(roundNum: Int): Unit = {
@@ -79,6 +81,30 @@ class Game(val numPlayers: Int) {
     _hasMatch = false
   }
 
+  def simIsMatch(hand: Vector[Card], roundNum: Int): Boolean = {
+    if (hand.length < 3) {
+      false
+    } else {
+      val sorted = hand.sortBy(_.value)
+      val checkValue = sorted.head.value
+      if(sorted.forall(_.value == checkValue)) true else {
+        val checkSuit: Suit = sorted.head.suit
+        if (sorted.forall(c => {
+          c.suit == checkSuit
+        })) {
+          var isStraight = true
+          for (c <- 0 until sorted.length - 1) {
+            if (sorted(c).value - sorted(c + 1).value != 1) isStraight = false
+          }
+          isStraight
+        }
+        else false
+      }
+    }
+  }
+
+  def possibleCards(hand: Vector[Card], discard: Vector[Card]): Vector[Card] = Card.allCards.diff(hand ++ discard).toVector
+
   def checkMatch(p: Player, indexes: List[Int], roundNum: Int): Boolean = {
     println(_hasMatch)
     if (indexes.length < 3) {
@@ -88,8 +114,6 @@ class Game(val numPlayers: Int) {
     else {
       val cards = indexes.map(p.hand(_)).filter(c => c.value != 50 && c.value != roundNum).sortBy(_.value)
       println(cards.toList)
-      //same suit AND run
-      //same value suit doesnt matter
       val checkValue: Int = cards.head.value
       if (cards.forall(c => {
         c.value == checkValue

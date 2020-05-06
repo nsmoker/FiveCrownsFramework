@@ -4,17 +4,18 @@ import agent.NodeAction.NodeAction
 import game.Card
 
 import scala.collection.mutable.ArrayBuffer
-import scala.util.Random
 
-class ChanceNode extends Node {
-  var knownCards: ArrayBuffer[Card] = _
-  var parent: Node = _
-  var children: ArrayBuffer[Node] = _
+class ChanceNode(val hand: Vector[Card], val discard: Vector[Card], val parent: Node,
+                 val actionType: NodeAction, val hasMatched: Boolean, val turn: Int, val weight: Double) extends Node {
+  val children: ArrayBuffer[Node] = ArrayBuffer.empty
+  val childProbs: ArrayBuffer[Double] = ArrayBuffer.empty
   var score: Double = _
-  var actionType: NodeAction = NodeAction.Chance
+  var visits: Int = _
+}
 
-  def genCard: Card = {
-    val possibilites = Card.allCards.diff(knownCards)
-    possibilites(Random.nextInt(possibilites.length))
+object ChanceNode {
+  def apply(hand: Vector[Card], discard: Vector[Card], parent: Node,
+            actionType: NodeAction, hasMatched: Boolean, turn: Int, weight: Double): ChanceNode = {
+    new ChanceNode(hand, discard, parent, actionType, hasMatched, turn, weight)
   }
 }

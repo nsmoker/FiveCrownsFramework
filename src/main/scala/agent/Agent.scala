@@ -4,9 +4,8 @@ import game._
 
 trait Agent {
   var responded = true
+  val game: Game
 
-  def getDraw(game: Game, timeDue: Long): Boolean
-  def getDiscard(game: Game, timeDue: Long): Int
-  def getMatch(game: Game, timeDue: Long): List[Int]
-  //def getMove(game: Game, timeDue: Long): Position
+  def getDraw(timeDue: Long): Boolean
+  def getDiscard(timeDue: Long): Int
 }
