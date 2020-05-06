@@ -11,35 +11,38 @@ class MCTSAgent(val game: Game) extends Agent {
   var p: Player = null
 
   def getDraw(timeDue: Long): Boolean = {
+    println("Starting MCTS Draw . . .")
     val root: Node = StateNode(null, 1, p.hand.toVector, game.getDiscard, game, game.hasMatch, NodeAction.Draw)
     val start = System.currentTimeMillis()
     while (start + timeDue > System.currentTimeMillis()) {
-      println("Loop completed")
+      //println("Loop completed")
       val guessNode = selection(root)
-      println(guessNode.hand.length)
+      //println(guessNode.hand.length)
       val expand = expansion(guessNode)
-      println(expand.hand.length)
+      //println(expand.hand.length)
       val res = simulation(expand)
       backPropagation(res, expand)
     }
     //root.children.foreach(n => println(n.score / n.visits))
     val bestDraw = root.children.minBy(n => n.score / n.visits)
+    println("MCTS Draw Done")
     bestDraw.actionType == NodeAction.Chance
   }
 
   def getDiscard(timeDue: Long): Int = {
+    println("Starting MCTS Discard . . .")
     val root: Node = StateNode(null, 1, p.hand.toVector, game.getDiscard, game, game.hasMatch, NodeAction.Discard)
     val start = System.currentTimeMillis()
     while (start + timeDue > System.currentTimeMillis()) {
-      println("Loop completed")
-      println("Root's hand: " + root.hand)
-      println("Root's children's hands: " + root.children.map(_.hand))
-      println("Root's children's scores: " + root.children.map(_.score))
-      println("Root's children count: " + root.children.length)
+      //println("Loop completed")
+      //println("Root's hand: " + root.hand)
+      //println("Root's children's hands: " + root.children.map(_.hand))
+      //println("Root's children's scores: " + root.children.map(_.score))
+      //println("Root's children count: " + root.children.length)
       val guessNode = selection(root)
-      println(guessNode.hand.length)
+      //println(guessNode.hand.length)
       val expand = expansion(guessNode)
-      println(expand.hand.length)
+      //println(expand.hand.length)
       val res = simulation(expand)
       backPropagation(res, expand)
     }
@@ -51,6 +54,7 @@ class MCTSAgent(val game: Game) extends Agent {
       val inds = dif.map(root.hand.indexOf(_))
       game.checkMatch(p, inds.toList, roundNum)
     }
+    println("MCTS Discard Done")
     p.hand.indexOf(bestDiscard.discard.head)
   }
 
@@ -126,7 +130,7 @@ class MCTSAgent(val game: Game) extends Agent {
           val nodes = possibleCards.map(c => StateNode(cn, cn.turn, cn.hand.prepended(c),
             if (possiblesPreShuffle.isEmpty) Vector.empty else cn.discard, game, cn.hasMatched, NodeAction.Discard))
           cn.children.addAll(nodes)
-          println(possibleCards.length)
+          //println(possibleCards.length)
           cn.childProbs.addAll(ArrayBuffer.fill(cn.children.length)(1.0 / possibleCards.length.toDouble))
           nodes(Random.nextInt(nodes.length))
       }
