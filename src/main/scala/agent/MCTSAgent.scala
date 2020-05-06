@@ -22,6 +22,7 @@ class MCTSAgent(val game: Game) extends Agent {
       val res = simulation(expand)
       backPropagation(res, expand)
     }
+    //root.children.foreach(n => println(n.score / n.visits))
     val bestDraw = root.children.minBy(n => n.score / n.visits)
     bestDraw.actionType == NodeAction.Chance
   }
@@ -43,9 +44,9 @@ class MCTSAgent(val game: Game) extends Agent {
       backPropagation(res, expand)
     }
     val bestDiscard = root.children.minBy(n => n.score / n.visits)
-    if(bestDiscard.hand.isEmpty) {
+    if (bestDiscard.hand.isEmpty) {
       game.checkMatch(p, p.hand.indices.toList, roundNum)
-    } else if(root.hand.length - bestDiscard.hand.length >= 3) {
+    } else if (root.hand.length - bestDiscard.hand.length >= 3) {
       val dif = root.hand.diff(bestDiscard.hand)
       val inds = dif.map(root.hand.indexOf(_))
       game.checkMatch(p, inds.toList, roundNum)
@@ -62,17 +63,17 @@ class MCTSAgent(val game: Game) extends Agent {
   }
 
   private def knapSack(hand: Vector[Card], seqs: Vector[Vector[Card]], ret: Vector[Card]): Vector[Card] = {
-    if(hand.isEmpty || seqs.isEmpty) {
+    if (hand.isEmpty || seqs.isEmpty) {
       ret
     } else {
-      if(seqs.head.diff(hand).nonEmpty) {
+      if (seqs.head.diff(hand).nonEmpty) {
         knapSack(hand, seqs.tail, ret)
       } else {
         val caseWith = knapSack(hand.diff(seqs.head), seqs.tail, ret ++ seqs.head)
         val caseWithout = knapSack(hand, seqs.tail, ret)
         val sumWith = caseWith.foldLeft(0.0)((x, y) => x + y.value)
         val sumWithout = caseWithout.foldLeft(0.0)((x, y) => x + y.value)
-        if(sumWith >= sumWithout) ret ++ caseWith else ret ++ caseWithout
+        if (sumWith >= sumWithout) ret ++ caseWith else ret ++ caseWithout
       }
     }
   }
@@ -81,9 +82,11 @@ class MCTSAgent(val game: Game) extends Agent {
   private def uct(n: Node): Double = {
     val wi = n.score.toDouble
     val ni = n.visits.toDouble
-    val c = 1.41
-    val t = n.parent.visits.toDouble
-    wi / ni + c * Math.sqrt(Math.log(t) / ni)
+    if (ni == 0) Double.MaxValue else {
+      val c = 1.41
+      val t = n.parent.visits.toDouble
+      -(wi / ni + c * Math.sqrt(Math.log(t) / ni))
+    }
   }
 
   def selection(root: Node): Node = if (root.isLeaf) root else selection(root.children.maxBy(uct))
@@ -96,15 +99,15 @@ class MCTSAgent(val game: Game) extends Agent {
       else node match {
         case sn: StateNode =>
           if (sn.actionType == NodeAction.Draw) {
-            val discardNode = if(sn.discard.nonEmpty) StateNode(sn, sn.turn, sn.hand.prepended(sn.discard.head),
+            val discardNode = if (sn.discard.nonEmpty) StateNode(sn, sn.turn, sn.hand.prepended(sn.discard.head),
               sn.discard.tail, game, sn.hasMatched, NodeAction.Discard) else null
             val drawDeckNode = ChanceNode(sn.hand, sn.discard, sn, NodeAction.Chance, sn.hasMatched, sn.turn)
             sn.children.addOne(drawDeckNode)
-            if(discardNode != null) sn.children.addOne(discardNode)
+            if (discardNode != null) sn.children.addOne(discardNode)
             if (Random.nextInt(2) == 0 && discardNode != null) discardNode else drawDeckNode
           } else {
             val nodes = sn.hand.map(c => {
-              if(!sn.hasMatched) {
+              if (!sn.hasMatched) {
                 val won = game.simIsMatch(sn.hand.diff(List(c)), roundNum)
                 StateNode(sn, -sn.turn, if (won) Vector.empty else sn.hand.diff(List(c)), sn.discard.prepended(c),
                   game, won, NodeAction.Draw)
@@ -119,10 +122,11 @@ class MCTSAgent(val game: Game) extends Agent {
           }
         case cn: ChanceNode =>
           val possiblesPreShuffle = Card.allCards.diff(cn.hand ++ cn.discard)
-          val possibleCards = if(possiblesPreShuffle.nonEmpty) possiblesPreShuffle else Card.allCards.diff(cn.hand)
+          val possibleCards = if (possiblesPreShuffle.nonEmpty) possiblesPreShuffle else Card.allCards.diff(cn.hand)
           val nodes = possibleCards.map(c => StateNode(cn, cn.turn, cn.hand.prepended(c),
-            if(possiblesPreShuffle.isEmpty) Vector.empty else cn.discard, game, cn.hasMatched, NodeAction.Discard))
+            if (possiblesPreShuffle.isEmpty) Vector.empty else cn.discard, game, cn.hasMatched, NodeAction.Discard))
           cn.children.addAll(nodes)
+          println(possibleCards.length)
           cn.childProbs.addAll(ArrayBuffer.fill(cn.children.length)(1.0 / possibleCards.length.toDouble))
           nodes(Random.nextInt(nodes.length))
       }
@@ -133,22 +137,24 @@ class MCTSAgent(val game: Game) extends Agent {
     def aux(hand: Vector[Card], discard: Vector[Card], action: NodeAction,
             hasMatched: Boolean, turn: Int): Double = {
       if (hasMatched && turn == -1 && action == NodeAction.Draw) {
-        hand.foldLeft(0.0)((s, c) => s + c.value)
+        val score = hand.foldLeft(0.0)((s, c) => s + c.value)
+        //println("Sim score: "+ score)
+        score
       } else if (turn == 1) {
         if (action == NodeAction.Draw || action == NodeAction.Chance) {
           val res = Random.nextInt(2) //Randomize decision to draw from discard pile or draw deck
           if (res == 1 || discard.isEmpty) {
             val possiblesBeforeShuffle = game.possibleCards(hand, discard)
-            val possibles = if(possiblesBeforeShuffle.nonEmpty) possiblesBeforeShuffle else game.possibleCards(hand, Vector.empty)
-            aux(hand.prepended(possibles(Random.nextInt(possibles.length))), if(possiblesBeforeShuffle.nonEmpty) discard else Vector.empty,
+            val possibles = if (possiblesBeforeShuffle.nonEmpty) possiblesBeforeShuffle else game.possibleCards(hand, Vector.empty)
+            aux(hand.prepended(possibles(Random.nextInt(possibles.length))), if (possiblesBeforeShuffle.nonEmpty) discard else Vector.empty,
               NodeAction.Discard, hasMatched, turn)
           } else aux(hand.prepended(discard.head), discard.tail, NodeAction.Discard, hasMatched, turn)
         } else {
           val res = Random.nextInt(hand.length)
           val resCard = hand(res)
-          if(!hasMatched) {
+          if (!hasMatched) {
             val complete = game.simIsMatch(hand.diff(List(resCard)), roundNum)
-            aux(if(complete) hand.empty else hand.diff(List(resCard)), discard.prepended(resCard), NodeAction.Draw, complete, -turn)
+            aux(if (complete) hand.empty else hand.diff(List(resCard)), discard.prepended(resCard), NodeAction.Draw, complete, -turn)
           } else {
             val best = bestSubMatch(hand.diff(List(resCard)))
             aux(hand.diff(best ++ List(resCard)), discard.prepended(resCard), NodeAction.Draw, hasMatched, -turn)
@@ -162,21 +168,27 @@ class MCTSAgent(val game: Game) extends Agent {
         } else {
           val possibles = game.possibleCards(hand, discard)
           val didMatch = Random.nextInt(1000) == 5 // todo: Better probability calculation or increasing percentage (won't fix)
-          aux(hand, if(possibles.nonEmpty) discard.prepended(possibles(Random.nextInt(possibles.length))) else Vector.empty, NodeAction.Draw, didMatch, -turn)
+          aux(hand, if (possibles.nonEmpty) discard.prepended(possibles(Random.nextInt(possibles.length))) else Vector.empty, NodeAction.Draw, didMatch, -turn)
         }
       }
     }
+
     aux(node.hand, node.discard, node.actionType, node.hasMatched, node.turn)
   }
 
   def backPropagation(score: Double, node: Node): Node = {
+    //println("score and node in backprop: " + score, node)
     node match {
       case sn: StateNode =>
         sn.score += score
-        sn.visits += 1
       case cn: ChanceNode =>
-        cn.score += cn.children.indices.map(i => cn.children(i).score * cn.childProbs(i)).sum / cn.children.length.toDouble
+        if(cn.children.isEmpty) cn.score = score else {
+          cn.score += cn.children.indices.map(i => cn.children(i).score * cn.childProbs(i)).sum / cn.children.length.toDouble
+        }
+        //println("score and node in backprop chance: " + score, node)
+        //println("children length: " + cn.children.length.toDouble)
     }
+    node.visits += 1
     if (node.hasParent) {
       backPropagation(node.score, node.parent)
     } else {
